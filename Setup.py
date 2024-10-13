@@ -6,10 +6,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+from sklearn.decomposition import PCA
+
 import neuscitk as ntk
 
 #get dataset
-dataset = ntk.LabChartDataset('/Users/prestonsands/Desktop/NEUSCI 302/Lab1/BWPSPA_Lab1_flipped.mat') #replace with your file
+dataset = ntk.LabChartDataset('/Users/prestonsands/Desktop/NEUSCI 302/Lab1/BWPSPA_Lab1_flipped.mat')
 
 #organize blocks into pages
 page_map = {
@@ -30,6 +32,13 @@ spine2trials= dataset.get_page('spine2trials')
 spine3trials= dataset.get_page('spine3trials')
 spine4trials= dataset.get_page('spine4trials')
 freqTrials= dataset.get_page('freqTrials')
+
+#concatonated groups
+spontaneousConcat = dataset.concat_blocks(range(1,11))
+spine1concat = dataset.concat_blocks(range(11,16))
+spine2concat = dataset.concat_blocks(range(16,21))
+spine3concat = dataset.concat_blocks(range(21,26))
+spine4concat = dataset.concat_blocks(range(26,31))
 
 #colors
 colors = {
@@ -77,3 +86,55 @@ colors = {
     'green2': '#0BB68C',
     'green3': '#038174',
 }
+
+#define cluster comparer
+def compare_clusters(group_1, group_2) -> tuple[np.ndarray, np.ndarray]:
+    '''
+    maps the waveforms from group_2 into the PCA space of group_1
+
+    Parameters
+    ------------
+    group_1 : SortedSpikes
+        the group of spikes we will use to define our PCA space, output of ntk.sort_spikes
+    
+    group_2 : SortedSpikes
+        the group of spikes we want to map into group_1s PCA space
+    '''
+
+    pca = PCA().fit(group_1._waveforms)
+    group_1_transformed = pca.transform(group_1._waveforms)
+    group_2_transformed = pca.transform(group_2._waveforms)
+
+    group_1_labels = group_1.labels
+    group_2_labels = group_2.labels
+
+    fig = plt.figure(figsize=(8, 8))
+    counter = 0
+    for idx, cluster in enumerate(np.unique(group_1_labels)):
+        mask = group_1_labels == cluster
+        plt.scatter(
+            group_1_transformed[mask, 0],
+            group_1_transformed[mask, 1],
+            c=f'C{counter}',
+            edgecolors='black',
+            linewidths=0.5,
+            label=f'Group 1 cluster {cluster}'
+        )
+        counter += 1
+    
+    for idx, cluster in enumerate(np.unique(group_2_labels)):
+        mask = group_2_labels == cluster
+        plt.scatter(
+            group_2_transformed[mask, 0],
+            group_2_transformed[mask, 1],
+            c=f'C{counter}',
+            edgecolors='black',
+            linewidths=0.5,
+            marker='X',
+            label=f'Group 2 cluster {cluster}'
+        )
+        counter += 1
+    plt.xlabel('Group 1 PC1')
+    plt.ylabel('Group 2 PC2')
+    plt.legend()
+    plt.show()
