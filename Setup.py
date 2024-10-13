@@ -88,18 +88,7 @@ colors = {
 }
 
 #define cluster comparer
-def compare_clusters(group_1, group_2) -> tuple[np.ndarray, np.ndarray]:
-    '''
-    maps the waveforms from group_2 into the PCA space of group_1
-
-    Parameters
-    ------------
-    group_1 : SortedSpikes
-        the group of spikes we will use to define our PCA space, output of ntk.sort_spikes
-    
-    group_2 : SortedSpikes
-        the group of spikes we want to map into group_1s PCA space
-    '''
+def compare_clusters(group_1, group_2, group_1_name='Group 1', group_2_name='Group 2') -> tuple[np.ndarray, np.ndarray]:
 
     pca = PCA().fit(group_1._waveforms)
     group_1_transformed = pca.transform(group_1._waveforms)
@@ -108,33 +97,43 @@ def compare_clusters(group_1, group_2) -> tuple[np.ndarray, np.ndarray]:
     group_1_labels = group_1.labels
     group_2_labels = group_2.labels
 
-    fig = plt.figure(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(10, 8))
     counter = 0
+
+    # Plot for group 1
     for idx, cluster in enumerate(np.unique(group_1_labels)):
         mask = group_1_labels == cluster
-        plt.scatter(
+        ax.scatter(
             group_1_transformed[mask, 0],
             group_1_transformed[mask, 1],
             c=f'C{counter}',
             edgecolors='black',
             linewidths=0.5,
-            label=f'Group 1 cluster {cluster}'
+            label=f'{group_1_name} cluster {cluster}'
         )
         counter += 1
-    
+
+    # Plot for group 2
     for idx, cluster in enumerate(np.unique(group_2_labels)):
         mask = group_2_labels == cluster
-        plt.scatter(
+        ax.scatter(
             group_2_transformed[mask, 0],
             group_2_transformed[mask, 1],
             c=f'C{counter}',
             edgecolors='black',
             linewidths=0.5,
             marker='X',
-            label=f'Group 2 cluster {cluster}'
+            label=f'{group_2_name} cluster {cluster}'
         )
         counter += 1
-    plt.xlabel('Group 1 PC1')
-    plt.ylabel('Group 2 PC2')
-    plt.legend()
+
+    ax.set_xlabel(f'{group_1_name} PC1')
+    ax.set_ylabel(f'{group_2_name} PC2')
+
+    # Place the legend outside the plot to the right
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
+    
+    plt.tight_layout()
     plt.show()
+
+    return group_1_transformed, group_2_transformed
